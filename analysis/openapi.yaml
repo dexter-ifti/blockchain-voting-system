@@ -1,0 +1,320 @@
+openapi: 3.0.3
+info:
+  title: Blockchain Voting System - Backend API
+  description: |
+    Authentication and admin validation endpoints for the blockchain voting system.
+    
+    **⚠️ Security Notice**: This API contains several security vulnerabilities:
+    - Admin passwords stored in plaintext
+    - Admin credentials passed via URL parameters
+    - No input validation on endpoints
+    - No rate limiting implemented
+    
+    **System Integration**: This API works in conjunction with:
+    - Ethereum smart contract for vote storage
+    - MetaMask wallet for Web3 authentication
+    - Twilio SMS for OTP delivery
+    - MongoDB for user/admin data storage
+  version: 1.0.0
+  contact:
+    name: Backend API
+    url: http://localhost:3001
+servers:
+  - url: http://localhost:3001
+    description: Development server
+  - url: https://api.yourdomain.com
+    description: Production server (example)
+
+paths:
+  /api/validateVoter:
+    post:
+      tags:
+        - Voter Authentication
+      summary: Validate voter and send OTP
+      description: |
+        Validates a voter by their Aadhaar number and sends an OTP to their registered phone number.
+        Uses Twilio SMS service with multiple account routing based on phone number.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - aadhar
+              properties:
+                aadhar:
+                  type: string
+                  description: 12-digit Aadhaar number
+                  example: "123456789012"
+                  pattern: "^[0-9]{12}$"
+            examples:
+              valid_request:
+                summary: Valid Aadhaar number
+                value:
+                  aadhar: "123456789012"
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "OTP sent successfully"
+                  phone:
+                    type: string
+                    description: Masked phone number
+                    example: "+91888*****006"
+        '400':
+          description: Invalid phone number or Twilio configuration error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Invalid phone number or Twilio credentials not set."
+        '404':
+          description: Voter not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "User not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Failed to send OTP"
+
+  /api/verifyCode:
+    post:
+      tags:
+        - Voter Authentication
+      summary: Verify OTP code
+      description: |
+        Verifies the OTP code sent to the voter's phone. On successful verification,
+        returns voter details and clears the OTP from the database.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - aadhar
+                - code
+              properties:
+                aadhar:
+                  type: string
+                  description: 12-digit Aadhaar number
+                  example: "123456789012"
+                  pattern: "^[0-9]{12}$"
+                code:
+                  type: string
+                  description: 6-digit OTP code
+                  example: "123456"
+                  pattern: "^[0-9]{6}$"
+            examples:
+              valid_verification:
+                summary: Valid OTP verification
+                value:
+                  aadhar: "123456789012"
+                  code: "123456"
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Verification successful!"
+                  name:
+                    type: string
+                    example: "John Doe"
+                  email:
+                    type: string
+                    example: "john.doe@example.com"
+                  dob:
+                    type: string
+                    example: "1990-01-01"
+                  phone:
+                    type: string
+                    example: "+918872241006"
+        '401':
+          description: Invalid OTP code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Invalid verification code"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Internal Server Error"
+
+  /api/validateAdmin/{name}/{pass}:
+    get:
+      tags:
+        - Admin Authentication
+      summary: Validate admin credentials
+      description: |
+        ⚠️ **SECURITY RISK**: Validates admin credentials using URL parameters.
+        This approach exposes credentials in:
+        - Server access logs
+        - Browser history
+        - Network monitoring tools
+        
+        **Recommendation**: Move to POST request with credentials in request body.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Admin username
+          schema:
+            type: string
+            example: "admin"
+        - name: pass
+          in: path
+          required: true
+          description: ⚠️ PLAINTEXT PASSWORD - Security vulnerability
+          schema:
+            type: string
+            example: "password123"
+      responses:
+        '200':
+          description: Valid admin credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: true
+                  name:
+                    type: string
+                    example: "Admin User"
+                  email:
+                    type: string
+                    example: "admin@example.com"
+                  phone:
+                    type: string
+                    example: "+919876543210"
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "No Data Found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Internal Server Error"
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error message description"
+      required:
+        - success
+        - message
+
+    VoterProfile:
+      type: object
+      properties:
+        aadhar:
+          type: string
+          description: 12-digit Aadhaar number (Primary Key)
+          example: "123456789012"
+        name:
+          type: string
+          example: "John Doe"
+        uname:
+          type: string
+          description: Username/Email
+          example: "john.doe@example.com"
+        phone:
+          type: string
+          example: "+918872241006"
+        dob:
+          type: string
+          format: date
+          example: "1990-01-01"
+        otp:
+          type: string
+          description: Temporary OTP (cleared after verification)
+          example: "123456"
+        otpCreatedAt:
+          type: string
+          format: date-time
+          description: OTP generation timestamp
+          example: "2025-08-13T10:30:00Z"
+
+    AdminProfile:
+      type: object
+      properties:
+        uname:
+          type: string
+          description: Admin username (Primary Key)
+          example: "admin"
+        pass:
+          type: string
+          description: ⚠️ PLAINTEXT PASSWORD - Security vulnerability
+          example: "password123"
+        name:
+          type: string
+          example: "Admin User"
+        phone:
+          type: string
+          example: "+919876543210"
+
+  securitySchemes: {}
+
+security: []
+
+tags:
+  - name: Voter Authentication
+    description: OTP-based voter authentication flow using Twilio SMS
+  - name: Admin Authentication
+    description: ⚠️ Insecure admin credential validation (URL parameters + plaintext)

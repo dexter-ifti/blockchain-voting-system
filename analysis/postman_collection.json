@@ -1,0 +1,236 @@
+{
+  "info": {
+    "name": "Blockchain Voting System - Backend API",
+    "description": "Authentication and admin validation endpoints for the blockchain voting system",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Voter Authentication",
+      "description": "OTP-based voter authentication flow",
+      "item": [
+        {
+          "name": "1. Validate Voter & Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"aadhar\": \"123456789012\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/validateVoter",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "validateVoter"]
+            },
+            "description": "Validates voter by Aadhaar number and sends OTP to registered phone"
+          },
+          "response": [
+            {
+              "name": "Success - OTP Sent",
+              "originalRequest": {
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"aadhar\": \"123456789012\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/validateVoter",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "validateVoter"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP sent successfully\",\n  \"phone\": \"+91888*****006\"\n}"
+            },
+            {
+              "name": "Error - User Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"aadhar\": \"999999999999\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/validateVoter",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "validateVoter"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"User not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. Verify OTP Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"aadhar\": \"123456789012\",\n  \"code\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verifyCode",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verifyCode"]
+            },
+            "description": "Verifies the OTP code and returns user details on success"
+          },
+          "response": [
+            {
+              "name": "Success - OTP Verified",
+              "originalRequest": {
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"aadhar\": \"123456789012\",\n  \"code\": \"123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/verifyCode",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verifyCode"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Verification successful!\",\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"dob\": \"1990-01-01\",\n  \"phone\": \"+918872241006\"\n}"
+            },
+            {
+              "name": "Error - Invalid OTP",
+              "originalRequest": {
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"aadhar\": \"123456789012\",\n  \"code\": \"000000\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/verifyCode",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verifyCode"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid verification code\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin Authentication",
+      "description": "Admin credential validation (⚠️ Security Risk - URL params)",
+      "item": [
+        {
+          "name": "Validate Admin Credentials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/validateAdmin/:name/:pass",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "validateAdmin", ":name", ":pass"],
+              "variable": [
+                {
+                  "key": "name",
+                  "value": "admin",
+                  "description": "Admin username"
+                },
+                {
+                  "key": "pass",
+                  "value": "password123",
+                  "description": "⚠️ PLAINTEXT PASSWORD in URL"
+                }
+              ]
+            },
+            "description": "⚠️ SECURITY RISK: Validates admin credentials via URL parameters (plaintext)"
+          },
+          "response": [
+            {
+              "name": "Success - Valid Admin",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/validateAdmin/admin/password123",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "validateAdmin", "admin", "password123"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [],
+              "body": "{\n  \"status\": true,\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"phone\": \"+919876543210\"\n}"
+            },
+            {
+              "name": "Error - Invalid Credentials",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/validateAdmin/wronguser/wrongpass",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "validateAdmin", "wronguser", "wrongpass"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"No Data Found\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string",
+      "description": "Backend server base URL"
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// No authentication headers required",
+          "// All endpoints are currently unprotected"
+        ]
+      }
+    }
+  ]
+}
